@@ -1,34 +1,44 @@
-import { NextResponse } from 'next/server';
 import { experimental_evaluate as evaluate } from 'ai';
+import { NextResponse } from 'next/server';
 
 export async function POST(req: Request) {
   try {
-    const { userText } = await req.json();
+    const { input } = await req.json();
 
-    // Send context to Jev to get sub-second evaluations
     const result = await evaluate({
       model: 'typesafe-ai/jev',
-      state: userText,
+      state: input,
       questions: {
+        // Correct key for choice is 'criteria' (map of option -> description)
         category: {
           type: 'choice',
-          options: ['support', 'feature_request', 'bug_report', 'general'],
-          instructions: 'Categorize the user inquiry.',
+          instructions: 'Which area does this input belong to?',
+          criteria: {
+            bug_report: 'Reporting a system break, error, or glitch',
+            feature_request: 'Asking for new capabilities or enhancements',
+            billing: 'Payment, subscription, or account issues',
+            spam: 'Irrelevant or promotional text',
+          },
         },
-        priorityScore: {
+        // Correct key for score is 'criteria' (array of scale labels)
+        sentimentScore: {
           type: 'score',
-          range: [1, 5],
-          instructions: 'Rate the urgency from 1 (low) to 5 (critical).',
+          instructions: 'Score the customer sentiment.',
+          criteria: ['Frustrated/Angry', 'Neutral', 'Delighted/Satisfied'],
         },
-        isSpam: {
-          type: 'noul', // Boolean probability
-          instructions: 'Is this promotional or spam content?',
+        // Correct type is 'boolean'
+        isUrgent: {
+          type: 'boolean',
+          instructions: 'Is the customer experiencing an active blocking outage?',
         },
       },
     });
 
-    return NextResponse.json({ success: true, decision: result });
-  } catch (error) {
-    return NextResponse.json({ success: false, error: (error as Error).message }, { status: 500 });
+    return NextResponse.json({
+      success: true,
+      decision: result.answers,
+    });
+  } catch (error: any) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
