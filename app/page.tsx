@@ -2,13 +2,19 @@
 
 import { useState } from 'react';
 
+const DEFAULT_INPUT =
+  "My Cohesity backup job failed for the third night in a row and I'm about to escalate this to the vendor.";
+
 export default function Home() {
-  const [input, setInput] = useState('');
+  const [input, setInput] = useState(DEFAULT_INPUT);
   const [result, setResult] = useState<any>(null);
+  const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
   const handleEvaluate = async () => {
     setLoading(true);
+    setResult(null);
+    setError(null);
     try {
       const res = await fetch('/api/decide', {
         method: 'POST',
@@ -16,7 +22,13 @@ export default function Home() {
         body: JSON.stringify({ input }),
       });
       const data = await res.json();
-      setResult(data);
+      if (data.success) {
+        setResult(data);
+      } else {
+        setError(data.error || `Request failed with status ${res.status}`);
+      }
+    } catch (err: any) {
+      setError(err.message || 'Network error');
     } finally {
       setLoading(false);
     }
@@ -35,6 +47,20 @@ export default function Home() {
       <button onClick={handleEvaluate} disabled={loading}>
         {loading ? 'Evaluating...' : 'Test Jev Decision'}
       </button>
+
+      {error && (
+        <pre
+          style={{
+            background: '#fdecea',
+            color: '#611a15',
+            padding: '1rem',
+            marginTop: '1rem',
+            whiteSpace: 'pre-wrap',
+          }}
+        >
+          {error}
+        </pre>
+      )}
 
       {result && (
         <pre style={{ background: '#f4f4f4', padding: '1rem', marginTop: '1rem' }}>

@@ -9,12 +9,11 @@ export async function POST(req: Request) {
 
     if (!input || typeof input !== 'string') {
       return NextResponse.json(
-        { error: 'Input must be a non-empty string.' },
+        { success: false, error: 'Input must be a non-empty string.' },
         { status: 400 }
       );
     }
 
-    // Call Jev model directly via TypeSafe provider
     const result = await evaluate({
       model: gateway.evaluationModel('typesafe-ai/jev'),
       state: {
@@ -46,15 +45,17 @@ export async function POST(req: Request) {
     return NextResponse.json({
       success: true,
       decision: result.answers,
+      usage: result.usage,
     });
   } catch (err: any) {
     console.error('Jev Evaluation Error:', err);
+    const isGatewayError = err?.name?.startsWith('Gateway');
     return NextResponse.json(
       {
+        success: false,
         error: err.message || 'An unknown error occurred during evaluation.',
-        details: String(err),
       },
-      { status: 500 }
+      { status: isGatewayError ? 502 : 500 }
     );
   }
 }
