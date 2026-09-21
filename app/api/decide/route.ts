@@ -1,5 +1,5 @@
 import { experimental_evaluate as evaluate } from 'ai';
-import { typeSafeAi } from '@ai-sdk/typesafe-ai';
+import { gateway } from '@ai-sdk/gateway';
 import { NextResponse } from 'next/server';
 
 export async function POST(req: Request) {
@@ -16,7 +16,7 @@ export async function POST(req: Request) {
 
     // Call Jev model directly via TypeSafe provider
     const result = await evaluate({
-      model: typeSafeAi.evaluationModel('jev-latest'),
+      model: gateway.evaluationModel('typesafe-ai/jev'),
       state: {
         message: input,
       },
