@@ -1,22 +1,24 @@
 import { experimental_evaluate as evaluate } from 'ai';
+import { typeSafeAi } from '@ai-sdk/typesafe-ai';
 import { NextResponse } from 'next/server';
 
 export async function POST(req: Request) {
   try {
-    const { input } = await req.json();
+    const body = await req.json();
+    const input = body?.input;
 
     if (!input || typeof input !== 'string') {
       return NextResponse.json(
-        { error: 'Please provide a valid input string.' },
+        { error: 'Input must be a non-empty string.' },
         { status: 400 }
       );
     }
 
+    // Call Jev model directly via TypeSafe provider
     const result = await evaluate({
-      model: 'typesafe-ai/jev',
-      // Ensure state is passed as a structured object
+      model: typeSafeAi.evaluationModel('jev-latest'),
       state: {
-        user_text: input,
+        message: input,
       },
       questions: {
         category: {
@@ -31,12 +33,12 @@ export async function POST(req: Request) {
         },
         sentimentScore: {
           type: 'score',
-          instructions: 'Score the customer sentiment from lowest (negative) to highest (positive).',
-          criteria: ['Frustrated/Angry', 'Neutral', 'Delighted/Satisfied'],
+          instructions: 'Score customer sentiment from lowest to highest.',
+          criteria: ['Frustrated', 'Neutral', 'Satisfied'],
         },
         isUrgent: {
           type: 'boolean',
-          instructions: 'Is the customer experiencing an active blocking outage or severe loss of functionality?',
+          instructions: 'Is the customer reporting an active system blocking outage?',
         },
       },
     });
@@ -45,7 +47,14 @@ export async function POST(req: Request) {
       success: true,
       decision: result.answers,
     });
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+  } catch (err: any) {
+    console.error('Jev Evaluation Error:', err);
+    return NextResponse.json(
+      {
+        error: err.message || 'An unknown error occurred during evaluation.',
+        details: String(err),
+      },
+      { status: 500 }
+    );
   }
 }
