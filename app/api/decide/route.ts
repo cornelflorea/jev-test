@@ -5,11 +5,20 @@ export async function POST(req: Request) {
   try {
     const { input } = await req.json();
 
+    if (!input || typeof input !== 'string') {
+      return NextResponse.json(
+        { error: 'Please provide a valid input string.' },
+        { status: 400 }
+      );
+    }
+
     const result = await evaluate({
       model: 'typesafe-ai/jev',
-      state: input,
+      // Ensure state is passed as a structured object
+      state: {
+        user_text: input,
+      },
       questions: {
-        // Correct key for choice is 'criteria' (map of option -> description)
         category: {
           type: 'choice',
           instructions: 'Which area does this input belong to?',
@@ -20,16 +29,14 @@ export async function POST(req: Request) {
             spam: 'Irrelevant or promotional text',
           },
         },
-        // Correct key for score is 'criteria' (array of scale labels)
         sentimentScore: {
           type: 'score',
-          instructions: 'Score the customer sentiment.',
+          instructions: 'Score the customer sentiment from lowest (negative) to highest (positive).',
           criteria: ['Frustrated/Angry', 'Neutral', 'Delighted/Satisfied'],
         },
-        // Correct type is 'boolean'
         isUrgent: {
           type: 'boolean',
-          instructions: 'Is the customer experiencing an active blocking outage?',
+          instructions: 'Is the customer experiencing an active blocking outage or severe loss of functionality?',
         },
       },
     });
