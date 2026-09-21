@@ -9,14 +9,17 @@ export default function Home() {
 
   const handleEvaluate = async () => {
     setLoading(true);
-    const res = await fetch('/api/decide', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ userText: input }),
-    });
-    const data = await res.json();
-    setResult(data);
-    setLoading(false);
+    try {
+      const res = await fetch('/api/decide', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ input }),
+      });
+      const data = await res.json();
+      setResult(data);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
